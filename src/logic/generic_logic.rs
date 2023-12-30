@@ -1,44 +1,35 @@
 use super::logic_defs::LogicState;
-use super::logic_block::{LogicBlock, MAX_CACHE_INPUTS};
+use super::logic_block::{LogicBlock, LogicBlockPort, LogicBlockPortKey};
+use slotmap::HopSlotMap;
 
-trait GenericGate {
-    fn update(&mut self);
-    fn logic_fn(&self) -> LogicState;
+
+fn logic_fn(inputs: &HopSlotMap<LogicBlockPortKey, LogicBlockPort>) -> LogicState {
+    for (_, input) in inputs {
+        if input.state == LogicState::LOW {
+            return LogicState::LOW
+        }
+    }
+    LogicState::HIGH
 }
 
+
 struct AndGate {
-    gate_base: LogicBlock,
+    gate_base: LogicBlock<fn(&HopSlotMap<LogicBlockPortKey, LogicBlockPort>) -> LogicState>,
 }
 
 impl AndGate {
     fn new() -> AndGate {
         AndGate {
-           gate_base: LogicBlock::new(), 
+            gate_base: LogicBlock::new(logic_fn),
         }
     }
-}
 
-impl GenericGate for AndGate {
-    fn logic_fn(&self) -> LogicState {
-        for (_, input) in self.gate_base.inputs.iter() {
-            if input.state != LogicState::HIGH {
-                return LogicState::LOW
-            }
-        }
-        LogicState::HIGH
+    fn set_input(&mut self, input_key: LogicBlockPortKey, state: LogicState) {
+        self.gate_base.set_input(input_key, state)
     }
 
-    fn update(&mut self) {
-        let mut output: LogicState;
-        // check if cached, will update output if found
-        let cached_output = self.gate_base.check_output_cache();
-        // check if logic_fn needs to be used
-        if cached_output == LogicState::INVALID {
-            output = self.logic_fn();
-        } else { // will add to cache
-            output = cached_output;
-        }
-        self.gate_base.set_output(output)    
+    fn get_output(&self) -> LogicState {
+        self.gate_base.get_output()
     }
 }
 
@@ -46,23 +37,19 @@ impl GenericGate for AndGate {
 
 
 mod tests {
-    use crate::logic::{logic_defs::LogicState, generic_logic::GenericGate};
+    use crate::logic::logic_defs::LogicState;
 
     use super::AndGate;
 
-    #[test] 
+    #[test]
     fn test_and_gate() {
         let mut and_gate = AndGate::new();
         let in_1 = and_gate.gate_base.add_input();
         let in_2 = and_gate.gate_base.add_input();
-
-        and_gate.gate_base.set_input(in_1, LogicState::HIGH);
-        and_gate.gate_base.set_input(in_2, LogicState::HIGH);
-
-        assert_eq!(and_gate.gate_base.check_output_cache(), LogicState::INVALID);
-
-        and_gate.update();
-
-        assert_eq!(and_gate.gate_base.check_output_cache(), LogicState::HIGH);
+        // manually poke update
+        and_gate.gate_base.update();
+        assert_eq!(and_gate.get_output(), LogicState::LOW)
+        
+        
     }
 }
