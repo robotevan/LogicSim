@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::logic::logic_defs::LogicState;
 
 pub const MAX_CACHE_INPUTS: usize = 32;
+pub type LogicFn = LogicBlock<fn(&HopSlotMap<LogicBlockPortKey, LogicBlockPort>) -> LogicState>;
 
 new_key_type! {
     pub struct LogicBlockPortKey;
@@ -69,6 +70,16 @@ impl<F> LogicBlock<F>
         self.inputs.remove(key);
         // invalidate previous cache, reinit inputs
         self.update_cache();
+    }
+
+    /// invert the output of the logic block
+    pub fn invert_output(&mut self, invert: bool) {
+        self.output.is_inverted = invert;
+    }
+
+    /// invert a given input
+    pub fn invert_input(&mut self, input: LogicBlockPortKey, invert: bool) {
+        self.inputs[input].is_inverted = invert;
     }
 
     /// update the logic block output, will check if entry is in cache first,
