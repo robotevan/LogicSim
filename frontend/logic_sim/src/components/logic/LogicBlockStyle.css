@@ -1,0 +1,10 @@
+.base-logic-block {
+    display: flex;
+    justify-content: space-around;
+    font-size: 20px;
+    background: #6f6d6d;
+    border: 1px solid #555;
+    border-radius: 10px;
+    text-align: center;
+    padding: 75px;
+}
